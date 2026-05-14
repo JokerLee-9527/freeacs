@@ -14,6 +14,7 @@ import java.util.Map.Entry;
 /**
  * JobLogic should do two things, first and foremost: 1) Find a new job 2) Check if a job has
  * executed OK
+ * JobLogic应该做两件事，首先：1) 找到一个新作业 2) 检查作业是否执行成功
  *
  * @author morten
  */
@@ -106,6 +107,7 @@ public class JobLogic {
   /**
    * The method filters through all kinds of factors to find which Job (if any) should be the next
    * to run.
+   * 该方法通过筛选各种因素来确定哪个作业（如果有）应该是下一个运行的作业。
    */
   private static Job getJob(SessionDataI sessionData, int downloadLimit) {
     Unit unit = sessionData.getUnit();
@@ -186,6 +188,7 @@ public class JobLogic {
     while (i.hasNext()) {
       Job j = i.next().getValue();
       // The job depends on another job, but the other job has not yet run (according to history)
+      // 该作业依赖于另一个作业，但另一个作业尚未运行（根据历史记录）
       if (j.getDependency() != null && jobHistory.get(j.getDependency().getId()) == null) {
         i.remove();
       }
@@ -196,17 +199,23 @@ public class JobLogic {
   /**
    * This filter removes all jobs that are not scheduled to run now (that is: within 31 seconds).
    * There are two reasons why jobs cannot run now:
+   * 此过滤器移除所有未安排在现在运行（即：31秒内）的作业。
+   * 作业无法现在运行有两个原因：
    *
    * <p>1. If a job is repeatable, it should run at fixed time intervals. Thus it may be that a
    * repeatable job cannot run before more than 31 seconds.
+   * 1. 如果作业是可重复的，它应该按固定时间间隔运行。因此，可重复作业可能在31秒后才能运行。
    *
    * <p>2. If a job is not repeatable, it can start at any moment. But, it must still obey the
    * service window.
+   * 2. 如果作业不可重复，它可以随时开始。但是，它仍必须遵守服务窗口。
    *
    * <p>For all jobs that is not scheduled to run right away, we calculate the next periodic inform
    * interval and place it on the job object (and use that in PIIDecision).
+   * 对于所有未安排立即运行的作业，我们计算下一个周期性通知间隔并将其放在作业对象上（并在PIIDecision中使用）。
    *
    * <p>The only jobs returned from this filter is jobs that can run right away!
+   * 此过滤器返回的唯一作业是可以立即运行的作业！
    */
   private static Map<Integer, Job> filterOnRunTime(
       SessionDataI sessionData,
@@ -281,6 +290,7 @@ public class JobLogic {
     }
 
     // Second pass over possibleJobs, to remove repeatableJobs which is not the "nextRepeatableJob"
+    // 第二次遍历 possibleJobs，移除不是"nextRepeatableJob"的可重复作业
     if (nextRepeatableJob != null) {
       nextRepeatableJob.setNextPII(null);
       Iterator<Entry<Integer, Job>> i2 = possibleJobs.entrySet().iterator();
@@ -369,12 +379,14 @@ public class JobLogic {
         try {
           JobHistoryEntry jhEntry = new JobHistoryEntry(str);
           // A job in the history is deleted from the database, we'll ignore that one
+        // 历史记录中的作业已从数据库中删除，我们将忽略它
           if (jobs.getById(jhEntry.getJobId()) == null) {
             continue;
           }
           jobHistoryMap.put(jhEntry.getJobId(), jhEntry);
         } catch (NumberFormatException nfe) {
           // Ignore error...will occur if job-history is "" or someone has entered bogus history
+          // 忽略错误...如果作业历史为空或有人输入了虚假历史，则会发生
         }
       }
     }
@@ -393,6 +405,7 @@ public class JobLogic {
       boolean repeatableJob = job.getRepeatCount() != null && job.getRepeatCount() > 0;
       if (repeatableJob) {
         // If a job has been repeated enough, it will be filtered out
+        // 如果作业已经重复足够次数，将被过滤掉
         if (jhEntry.getRepeatedCount() != null
             && job.getRepeatCount() <= jhEntry.getRepeatedCount()) {
           i.remove();
@@ -400,6 +413,7 @@ public class JobLogic {
       } else {
         // If a job is not repeatable and represented in the history, it is already executed, hence
         // filtered out
+        // 如果作业不可重复且在历史记录中存在，说明已执行，因此被过滤掉
         i.remove();
       }
     }
@@ -411,6 +425,8 @@ public class JobLogic {
    * jobs. The rules are shown below, in prioritized order: 1. Non-repeatable jobs have priority
    * over those that are repeatable. 2. Non-dependent jobs have priority over those that are
    * dependent.
+   * 如果多个作业通过了所有过滤器，我们需要在作业之间进行优先级排序。
+   * 规则如下，按优先级顺序：1. 不可重复作业优先于可重复作业。2. 无依赖作业优先于有依赖作业。
    */
   private static Job findJobWithHighestPriority(Map<Integer, Job> possibleJobs) {
     Iterator<Entry<Integer, Job>> i = possibleJobs.entrySet().iterator();

@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/** This class performs a SHELL-job */
+/** This class performs a SHELL-job 此类执行SHELL作业 */
 @Slf4j
 public class ShellJobLogic {
 
@@ -32,6 +32,9 @@ public class ShellJobLogic {
      * this we use the unit-id is used to lookup a simple Object(). We cannot use the unit-id String
      * object directly, because even if the String-object encapsulates the same string, it is not the
      * same object.
+     * 我们需要一个监视器来同步，以便使用相同unit-id（相同ACS用户名）的两个设备不会在同一上下文中同时运行shell脚本。
+     * 为了防止这种情况，我们使用unit-id来查找一个简单的Object()。我们不能直接使用unit-id String对象，
+     * 因为即使String对象封装了相同的字符串，它也不是同一个对象。
      */
     private static final Cache monitorCache = new Cache();
 
@@ -40,27 +43,29 @@ public class ShellJobLogic {
         String unitId = sessionData.getUnitId();
         CacheValue cv = monitorCache.get(unitId);
         if (cv == null) {
-            cv = new CacheValue(new Object()); // default settings: session-timeout for 30 minutes
+            cv = new CacheValue(new Object()); // default settings: session-timeout for 30 minutes // 默认设置：会话超时30分钟
             monitorCache.put(unitId, cv);
         }
         synchronized (cv.getObject()) {
-            // read parameters from device and save it to the unit
+            // read parameters from device and save it to the unit // 从设备读取参数并保存到设备
             ShellJobLogic.importReadOnlyParameters(sessionData, dbi);
-            // execute changes using the shell-script, all changes are written to database
+            // execute changes using the shell-script, all changes are written to database // 使用shell脚本执行更改，所有更改都写入数据库
             ShellJobLogic.executeShellScript(sessionData, job, uj, discovery, execs);
-            // read the changes from the database and send to CPE
+            // read the changes from the database and send to CPE // 从数据库读取更改并发送到CPE
             ShellJobLogic.prepareSPV(sessionData, dbi);
         }
     }
 
     /**
      * Responsible for executing a shell script. The following tasks must be done
+     * 负责执行shell脚本。必须完成以下任务
      *
      * <p>1. Retrieve shell script from job 2. Retrieve shell daemon. If necessary start new shell
      * daemon. If not allowed to make more daemons and waiting for more than 10 seconds, abort -
      * should result in Job verification fail (not sure how) 3. Feed shell script into shell daemon.
      * Wait for the script to be executed. If shell daemon returns error - should result in Job
      * verification fail (not sure how)
+     * 1. 从作业中检索shell脚本 2. 检索shell守护进程。如有必要，启动新的shell守护进程。如果不允许创建更多守护进程且等待超过10秒，则中止 - 应导致作业验证失败（不确定如何） 3. 将shell脚本输入shell守护进程。等待脚本执行完成。如果shell守护进程返回错误 - 应导致作业验证失败（不确定如何）
      */
     private static void executeShellScript(SessionData sessionData, Job job, UnitJob uj, boolean discovery, ScriptExecutions execs)
             throws TR069Exception {
@@ -73,7 +78,7 @@ public class ShellJobLogic {
                         + sessionData.getUnitId()
                         + "\"";
         String requestId =
-                "JOB:" + job.getId() + ":" + random.nextInt(1000000); // should be a unique Id
+                "JOB:" + job.getId() + ":" + random.nextInt(1000000); // should be a unique Id // 应该是唯一ID
         try {
             execs.requestExecution(job.getFile(), scriptArgs, requestId);
         } catch (SQLException e) {
@@ -84,13 +89,13 @@ public class ShellJobLogic {
         while (true) {
             try {
                 long timeWait =
-                        timeWaitFactor * timeWaitFactor * timeWaitFactor; // will wait longer and longer
+                        timeWaitFactor * timeWaitFactor * timeWaitFactor; // will wait longer and longer // 将等待越来越长
                 Thread.sleep(timeWait);
                 timeWaited += timeWait;
                 timeWaitFactor += 2;
                 ScriptExecution se = execs.getExecution(sessionData.getUnittype(), requestId);
                 if (se.getExitStatus() != null) {
-                    if (se.getExitStatus()) { // ERROR OCCURRED
+                    if (se.getExitStatus()) { // ERROR OCCURRED // 发生错误
                         log.error(se.getErrorMessage());
                         uj.stop(UnitJobStatus.CONFIRMED_FAILED, discovery);
                     } else uj.stop(UnitJobStatus.COMPLETED_OK, discovery);
@@ -113,6 +118,7 @@ public class ShellJobLogic {
     /**
      * Read unit parameters from database, to see if any changes have occurred (during the shell
      * script execution). If ReadWrite parameters differ from CPE, then send them to the CPE.
+     * 从数据库读取设备参数，查看是否发生了任何更改（在shell脚本执行期间）。如果ReadWrite参数与CPE不同，则将它们发送到CPE。
      */
     private static void toCPE(SessionData sessionData, DBI dbi) throws TR069DatabaseException {
         UnittypeParameters utps = sessionData.getUnittype().getUnittypeParameters();
@@ -145,6 +151,7 @@ public class ShellJobLogic {
     /**
      * In order for the shell script to run with the correct parameters, we must read them from the
      * device and write it to the database, before the script starts.
+     * 为了使shell脚本能够使用正确的参数运行，我们必须在脚本启动之前从设备读取参数并将其写入数据库。
      */
     private static void importReadOnlyParameters(SessionData sessionData, DBI dbi)
             throws TR069DatabaseException {

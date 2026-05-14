@@ -4,8 +4,8 @@ import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * The class is responsible for parsing the DeviceId entity and populating the DeviceIdStruct object
- * fields (manufacturer, oui, productClass, serialNumber).
+ * The class is responsible for parsing the DeviceId entity and 和 populating the DeviceIdStruct object
+ * fields (manufacturer, oui, productClass, serialNumber). 字段（制造商、oui、产品类别、序列号）。
  */
 public class DeviceIdHandler extends DefaultHandler {
   static final String DEVICE_ID_TAG = "DeviceId";

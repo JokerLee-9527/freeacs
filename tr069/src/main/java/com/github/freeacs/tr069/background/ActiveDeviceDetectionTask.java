@@ -39,7 +39,7 @@ public class ActiveDeviceDetectionTask extends TaskDefaultImpl {
       String unitId = entry.getKey();
       Syslog syslog = dbi.getSyslog();
       SyslogFilter sf = new SyslogFilter();
-      sf.setCollectorTmsStart(new Date(anHourAgo)); // look for syslog newer than 1 hour
+      sf.setCollectorTmsStart(new Date(anHourAgo)); // look for syslog newer than 1 hour 查找1小时内的系统日志
       sf.setUnitId(unitId);
       boolean active = false;
       List<SyslogEntry> entries = syslog.read(sf, dbi.getAcs());

@@ -4,8 +4,8 @@ import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * The class is responsible for parsing the MethodList entity (Note that this will only occur when
- * ACS asks the CPE for the list of methods supported using the GetPPCMethod).
+ * The class is responsible for parsing the MethodList entity (Note that this will only occur when 该类负责解析MethodList实体（注意这仅在以下情况下发生：
+ * ACS asks the CPE for the list of methods supported using the GetPPCMethod). ACS使用GetPPCMethod请求CPE获取支持的方法列表时）。
  */
 public class MethodListHandler extends DefaultHandler {
   public static final String METHOD_LIST_TAG = "MethodList";

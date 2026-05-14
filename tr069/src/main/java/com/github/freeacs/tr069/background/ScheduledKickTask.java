@@ -80,7 +80,7 @@ public class ScheduledKickTask extends TaskDefaultImpl {
     return logger;
   }
 
-  // FIXME this should have been called from somewhere
+  // FIXME this should have been called from somewhere FIXME 这应该从某处被调用
   public static void addUnit(Unit u) {
     removeUnit(u.getId());
     synchronized (syncMonitor) {

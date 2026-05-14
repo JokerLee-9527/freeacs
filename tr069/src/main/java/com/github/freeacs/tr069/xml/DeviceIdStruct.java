@@ -36,7 +36,7 @@ public class DeviceIdStruct {
     }
   }
 
-  // to hell with regex, this method is EASY to read.
+  // to hell with regex, this method is EASY to read. // 让正则表达式见鬼去吧，这个方法很容易读懂。
   private static String safeChar(String input) {
     return Stream.of(input.toCharArray())
         .reduce(new StringBuffer(), (stringBuffer, charArray) -> {

@@ -16,6 +16,8 @@ import java.util.*;
 /**
  * A collection of helper methods / actions that operate on the dbi instance.
  * And some other utility methods.
+ * 操作 dbi 实例的辅助方法/操作集合。
+ * 以及其他一些实用方法。
  */
 @Slf4j
 public abstract class DBIActions {
@@ -59,7 +61,7 @@ public abstract class DBIActions {
 
     public static void writeUnittypeProfileUnit(SessionData sessionData, String unittypeName, String unitId, DBI dbi)
             throws TR069Exception {
-        // If no product class is specified in the inform:
+        // If no product class is specified in the inform: 如果Inform中没有指定产品类：
         if (unittypeName == null || unittypeName.trim().isEmpty()) {
             unittypeName = getUnittypeName(unitId);
         }

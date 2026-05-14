@@ -24,7 +24,7 @@ public class DownloadLogicTR069 {
         CPEParameters cpeParams = sessionData.getCpeParameters();
         String scriptVersionFromDB = null;
         String scriptName = null;
-        if (job != null) { // retrieve desired-script-version from Job-parameters
+        if (job != null) { // retrieve desired-script-version from Job-parameters // 从作业参数中检索所需的脚本版本
             Map<String, JobParameter> jobParams = sessionData.getJobParams();
             for (Map.Entry<String, JobParameter> entry : jobParams.entrySet()) {
                 if (SystemParameters.isTR069ScriptVersionParameter(entry.getKey())) {
@@ -39,8 +39,8 @@ public class DownloadLogicTR069 {
             scriptName = scriptVersion.getScriptName();
         }
         if (scriptVersionFromDB != null) {
-            // scriptVersionFromDB has been found and we must find/build the
-            // download-URL
+            // scriptVersionFromDB has been found and we must find/build the // 已找到scriptVersionFromDB，我们必须找到/构建
+            // download-URL // 下载URL
             File file =
                     sessionData
                             .getUnittype()

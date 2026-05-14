@@ -20,6 +20,7 @@ import java.util.Map;
 /**
  * The class is responsible for parsing the SOAP messages from the CPE. The messages could be a
  * TR-069 request or a TR-069 response.
+ * 该类负责解析来自CPE的SOAP消息。这些消息可以是TR-069请求或TR-069响应。
  */
 @Getter
 @Slf4j
@@ -59,7 +60,7 @@ public class Parser extends DefaultHandler {
   private String cwmpVersion;
   private String rawXMLForDebugging;
 
-  /** Parse the soap messages using the standard SAX Parser. */
+  /** Parse the soap messages using the standard SAX Parser. 使用标准SAX解析器解析SOAP消息。 */
   public Parser(InputStream xmlInputStream, int contentLength, boolean debugXML) throws TR069Exception, IOException {
     initializeDataMappings();
 
@@ -84,20 +85,20 @@ public class Parser extends DefaultHandler {
       xmlReader.setErrorHandler(new SOAPErrorHandler());
 
       if (debugXML) {
-        // Efficiently read and duplicate the input stream for debugging
+        // Efficiently read and duplicate the input stream for debugging // 高效读取和复制输入流以进行调试
         byte[] bytes = xmlInputStream.readAllBytes();
         this.rawXMLForDebugging = new String(bytes, StandardCharsets.UTF_8);
-        xmlInputStream = new ByteArrayInputStream(bytes); // Reset stream for parsing
+        xmlInputStream = new ByteArrayInputStream(bytes); // Reset stream for parsing // 重置流以进行解析
       }
 
       xmlReader.parse(new InputSource(xmlInputStream));
     } catch (Exception ex) {
-      // Enhanced error handling could go here
+      // Enhanced error handling could go here // 可以在此处添加增强的错误处理
       throw new TR069Exception("Parsing of SOAP/XML request failed", TR069ExceptionShortMessage.MISC, ex);
     }
   }
 
-  /** Initializes data mapping members. */
+  /** Initialize data mapping members. 初始化数据映射成员。 */
   private void initializeDataMappings() {
     this.deviceIdStruct = new DeviceIdStruct();
     this.eventList = new EventList();
@@ -109,7 +110,7 @@ public class Parser extends DefaultHandler {
     this.rawXMLForDebugging = null;
   }
 
-  /** @return a new instance of a SAXParserFactory */
+  /** @return a new instance of a SAXParserFactory @return SAXParserFactory的新实例 */
   private SAXParserFactory getParserFactory() throws SAXNotSupportedException, SAXNotRecognizedException, ParserConfigurationException {
     if (factory == null) {
       factory = SAXParserFactory.newInstance();

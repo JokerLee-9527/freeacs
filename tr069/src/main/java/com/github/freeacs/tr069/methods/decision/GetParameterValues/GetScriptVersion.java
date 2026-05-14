@@ -26,7 +26,7 @@ public class GetScriptVersion {
     public GetScriptVersion build() {
         oweraParams.getAcsParams().entrySet().stream().flatMap(entry -> {
             if (SystemParameters.isTR069ScriptVersionParameter(entry.getKey())) {
-                // The config-file-name is the same as the script-name retrieved from the system-parameter
+                // The config-file-name is the same as the script-name retrieved from the system-parameter // 配置文件名称与从系统参数检索到的脚本名称相同
                 String name = SystemParameters.getTR069ScriptName(entry.getKey());
                 String scriptVersionFromCPE = cpeParams.getConfigFileMap().get(name);
                 if (scriptVersionFromCPE == null) {
@@ -35,7 +35,7 @@ public class GetScriptVersion {
                 }
                 String svDB = entry.getValue().getValue();
                 if (svDB != null && !svDB.equals(scriptVersionFromCPE)) {
-                    // upgrade
+                    // upgrade // 升级
                     scriptVersion = svDB;
                     scriptName = name;
                     return Stream.of(new NameAndValue<>(name, svDB));

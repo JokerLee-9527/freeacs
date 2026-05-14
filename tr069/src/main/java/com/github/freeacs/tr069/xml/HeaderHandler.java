@@ -4,8 +4,8 @@ import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * The class is responsible for parsing the SOAP header entity and populating the header object
- * fields (Transcation ID, HoldRequests).
+ * The class is responsible for parsing the SOAP header entity and 和 populating the header object
+ * fields (Transcation ID, HoldRequests). 字段（事务ID、HoldRequests）。
  */
 public class HeaderHandler extends DefaultHandler {
   public static final String HEADER_TAG = "Header";

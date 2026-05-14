@@ -36,6 +36,10 @@ public class AcsUnitDetailsService implements UserDetailsService {
                 // by migrating the secret to a hashed secret we can remove the passwordEncoder.encode(secret) below
                 // For adding new units we probably need to convert the secret to a hashed secret in ACSUnit
                 // return new AcsUnit(username, passwordEncoder.encode(secret));
+                // TODO 发布新主版本并在下面添加 passwordEncoder.encode(secret)
+                // 通过将密钥迁移为哈希密钥，我们可以删除下面的 passwordEncoder.encode(secret)
+                // 对于添加新设备，我们可能需要在 ACSUnit 中将密钥转换为哈希密钥
+                // return new AcsUnit(username, passwordEncoder.encode(secret));
                 return new AcsUnit(username, secret);
             } else {
                 throw new UsernameNotFoundException("User was not found: " + username);

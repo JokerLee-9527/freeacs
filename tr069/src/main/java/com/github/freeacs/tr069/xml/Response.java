@@ -3,7 +3,7 @@ package com.github.freeacs.tr069.xml;
 import java.util.Optional;
 
 /**
- * Represents the response from the ACS to the CPE.
+ * Represents the response from the ACS to the CPE. 表示从ACS到CPE的响应。
  *
  * @author morten
  */

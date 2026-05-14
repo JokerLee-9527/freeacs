@@ -5,9 +5,9 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * The class is responsible for parsing the ParameterList entity and populating the ParameterList
- * which is a list of ParameterValueStruct or ParameterInfoStruct objects (which depends on the RPC
- * method performed).
+ * The class is responsible for parsing the ParameterList entity and 和 populating the ParameterList
+ * which is a list of ParameterValueStruct or ParameterInfoStruct objects (which depends on the RPC 它是ParameterValueStruct或ParameterInfoStruct对象的列表（取决于执行的RPC方法）。
+ * method performed). 方法执行。
  */
 public class ParameterListHandler extends DefaultHandler {
   private enum ParameterType {

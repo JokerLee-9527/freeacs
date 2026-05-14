@@ -4,11 +4,11 @@ import lombok.Getter;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
 
-/** The class is responsible for parsing the SOAP Fault entity received from the CPE. */
+/** The class is responsible for parsing the SOAP Fault entity received from the CPE. 该类负责解析从CPE接收的SOAP错误实体。 */
 public class FaultHandler extends DefaultHandler {
 
   private static final String DSLFORUM_NS = "urn:dslforum-org:cwmp-1-0";
-  private static final String SOAP_ENV_NS = "http://schemas.xmlsoap.org/soap/envelope/";
+  private static final String SOAP_ENV_NS = "http:// schemas.xmlsoap.org/soap/envelope/"; // 中文翻译
 
   protected static final String FAULT_TAG = "Fault";
   private static final String SOAP_FAULT_CODE_TAG = "faultcode";

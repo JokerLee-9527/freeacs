@@ -40,11 +40,11 @@ public class DownloadLogic {
   }
 
   public static boolean downloadAllowed(Job job, int downloadLimit) {
-    int timeout = 10 * 60 * 1000; // 10 min
+    int timeout = 10 * 60 * 1000; // 10 min // 10分钟
     if (job != null) {
       timeout = job.getUnconfirmedTimeout() * 1000;
     }
-    removeOlderThan(timeout); // remove old downloads
+    removeOlderThan(timeout); // remove old downloads // 移除旧的下载
     if (size() >= downloadLimit) {
       log.warn("Download cannot be run since number of concurrent downloads are above "
               + downloadLimit

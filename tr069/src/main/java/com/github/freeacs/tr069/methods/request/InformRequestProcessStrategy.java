@@ -48,7 +48,7 @@ public class InformRequestProcessStrategy implements RequestProcessStrategy {
             Header header = parser.getHeader();
             reqRes.setTR069TransactionID(header.getId());
             DeviceIdStruct deviceIdStruct = parser.getDeviceIdStruct();
-            // If unit is authenticated, the unitId is already found
+            // If unit is authenticated, the unitId is already found // 如果设备已经通过认证，则unitId已经找到
             String unitId = sessionData.getUnitId();
             if (unitId == null) {
                 unitId = getUnitId(deviceIdStruct);
@@ -58,7 +58,7 @@ public class InformRequestProcessStrategy implements RequestProcessStrategy {
             sessionData.setSerialNumber(deviceIdStruct.getSerialNumber());
             parseEvents(parser, sessionData);
             parseParameters(sessionData, parser);
-            DBIActions.updateParametersFromDB(sessionData, isDiscoveryMode, dbi); // Unit-object is read and populated in SessionData
+            DBIActions.updateParametersFromDB(sessionData, isDiscoveryMode, dbi); // Unit-object is read and populated in SessionData // 从数据库读取设备对象并填充到会话数据
             logPeriodicInformTiming(sessionData);
             ScheduledKickTask.removeUnit(unitId);
             if (isDiscoveryMode && sessionData.isFirstConnect()) {
@@ -77,7 +77,7 @@ public class InformRequestProcessStrategy implements RequestProcessStrategy {
                 sessionData.setFromDB(null);
                 sessionData.setAcsParameters(null);
                 DBIActions.updateParametersFromDB(sessionData, true, dbi);
-                log.debug("Unittype, profile and unit is created, since discovery mode is enabled and this is the first connect");
+                log.debug("Unittype, profile and unit is created, since discovery mode is enabled and this is the first connect"); // 设备类型、配置文件和设备已创建，因为启用了发现模式且这是首次连接
             }
             sessionData.getCommandKey().setServerKey(reqRes);
             sessionData.getParameterKey().setServerKey(reqRes);
@@ -117,9 +117,9 @@ public class InformRequestProcessStrategy implements RequestProcessStrategy {
             sessionData.setTransferComplete(es.getEventCode().startsWith("7"));
             sessionData.setAutonomousTransferComplete(es.getEventCode().startsWith("10"));
             sessionData.setDiagnosticsComplete(es.getEventCode().startsWith("8"));
-            // This is a quick-and-easy impl. since, there can potentially be more than
-            // one CommandKey. However, I don't think this will be the case in practice. (Morten May 2012)
-            // TODO: This is surely not correct - Morten Jul 2012
+            // This is a quick-and-easy impl. since, there can potentially be more than // 这是一个快速而简单的实现，因为可能存在多个
+            // one CommandKey. However, I don't think this will be the case in practice. (Morten May 2012) // CommandKey。然而，我认为在实际中不会有这种情况。（Morten 2012年5月）
+            // TODO: This is surely not correct - Morten Jul 2012 // TODO: 这肯定不正确 - Morten 2012年7月
             if (es.getCommandKey() != null && !es.getCommandKey().trim().isEmpty()) {
                 sessionData.getCommandKey().setCpeKey(es.getCommandKey());
             }
@@ -217,17 +217,17 @@ public class InformRequestProcessStrategy implements RequestProcessStrategy {
                                 TimestampWrapper.tmsFormat.parse(LCT).getTime() + Integer.parseInt(PII) * 1000L;
                         long diff = System.currentTimeMillis() - shouldConnectTms;
                         if (diff > -5000 && diff < 5000) {
-                            log.info("Periodic Inform recorded on time   (" + diff / 1000 + " sec). Deviation: " + (diff / 10) / Integer.parseInt(PII) + " %");
+                            log.info("Periodic Inform recorded on time   (" + diff / 1000 + " sec). Deviation: " + (diff / 10) / Integer.parseInt(PII) + " %"); // 定期通知按时记录（" + diff / 1000 + "秒）。偏差：" + (diff / 10) / Integer.parseInt(PII) + "%"
                         } else if (diff >= 5000) {
-                            log.info("Periodic Inform recorded too late  (" + diff / 1000 + " sec). Deviation: " + (diff / 10) / Integer.parseInt(PII) + " %");
+                            log.info("Periodic Inform recorded too late  (" + diff / 1000 + " sec). Deviation: " + (diff / 10) / Integer.parseInt(PII) + " %"); // 定期通知记录过晚（" + diff / 1000 + "秒）。偏差：" + (diff / 10) / Integer.parseInt(PII) + "%"
                         } else {
-                            log.info("Periodic Inform recorded too early (" + diff / 1000 + " sec). Deviation: " + (diff / 10) / Integer.parseInt(PII) + " %");
+                            log.info("Periodic Inform recorded too early (" + diff / 1000 + " sec). Deviation: " + (diff / 10) / Integer.parseInt(PII) + " %"); // 定期通知记录过早（" + diff / 1000 + "秒）。偏差：" + (diff / 10) / Integer.parseInt(PII) + "%"
                         }
                     }
                 }
             }
         } catch (Throwable t) {
-            log.warn("LogPeriodicInformTiming failed - no consequence for provisioning: ", t);
+            log.warn("LogPeriodicInformTiming failed - no consequence for provisioning: ", t); // LogPeriodicInformTiming失败 - 对配置没有影响：
         }
     }
 }

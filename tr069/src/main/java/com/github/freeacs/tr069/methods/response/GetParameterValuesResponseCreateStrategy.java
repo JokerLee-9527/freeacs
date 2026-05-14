@@ -34,15 +34,15 @@ public class GetParameterValuesResponseCreateStrategy implements ResponseCreateS
         ProvisioningMode mode = sessionData.getUnit().getProvisioningMode();
         List<ParameterValueStruct> parameterValueList = new ArrayList<>();
         if (mode == ProvisioningMode.READALL) {
-            log.debug("Asks for all params (" + sessionData.getKeyRoot() + "), since in " + ProvisioningMode.READALL + " mode");
+            log.debug("Asks for all params (" + sessionData.getKeyRoot() + "), since in " + ProvisioningMode.READALL + " mode"); // 请求所有参数（" + sessionData.getKeyRoot() + "），因为处于" + ProvisioningMode.READALL + "模式"
             ParameterValueStruct pvs = new ParameterValueStruct(sessionData.getKeyRoot(), "");
             parameterValueList.add(pvs);
-        } else { // mode == ProvisioningMode.PERIODIC
-            // List<RequestResponseData> reqResList = sessionData.getReqResList();
+        } else { // mode == ProvisioningMode.PERIODIC // 模式 == ProvisioningMode.PERIODIC
+            // List<RequestResponseData> reqResList = sessionData.getReqResList(); // 请求响应数据列表
             String previousMethod = sessionData.getPreviousResponseMethod();
             if (properties.isUnitDiscovery(sessionData)
                     || ProvisioningMethod.GetParameterValues.name().equals(previousMethod)) {
-                log.debug("Asks for all params (" + sessionData.getKeyRoot() + "), either because unitdiscovery-quirk or prev. GPV failed");
+                log.debug("Asks for all params (" + sessionData.getKeyRoot() + "), either because unitdiscovery-quirk or prev. GPV failed"); // 请求所有参数（" + sessionData.getKeyRoot() + "），要么因为设备发现特性，要么因为之前的GPV失败"
                 ParameterValueStruct pvs = new ParameterValueStruct(sessionData.getKeyRoot(), "");
                 parameterValueList.add(pvs);
             } else {
@@ -51,7 +51,7 @@ public class GetParameterValuesResponseCreateStrategy implements ResponseCreateS
                 for (Map.Entry<String, ParameterValueStruct> entry : paramValueMap.entrySet()) {
                     parameterValueList.add(entry.getValue());
                 }
-                log.debug("Asks for " + parameterValueList.size() + " parameters in GPV-req");
+                log.debug("Asks for " + parameterValueList.size() + " parameters in GPV-req"); // 在GPV请求中请求" + parameterValueList.size() + "个参数"
                 parameterValueList.sort(new ParameterValueStructComparator());
             }
         }
@@ -83,17 +83,17 @@ public class GetParameterValuesResponseCreateStrategy implements ResponseCreateS
         CPEParameters cpeParams = sessionData.getCpeParameters();
         UnittypeParameters utps = sessionData.getUnittype().getUnittypeParameters();
 
-        // If device is not old Ping Communication device (NPA201E or RGW208EN) and
-        // vendor config file is not explicitely turned off,
-        // then we may ask for VendorConfigFile object.
+        // If device is not old Ping Communication device (NPA201E or RGW208EN) and // 如果设备不是旧的Ping通信设备（NPA201E或RGW208EN）且
+        // vendor config file is not explicitely turned off, // 供应商配置文件没有明确关闭，
+        // then we may ask for VendorConfigFile object. // 那么我们可以请求VendorConfigFile对象。
         String unitId = sessionData.getUnitId();
         boolean useVendorConfigFile =
                 !(unitId.contains("NPA201E") || unitId.contains("RGW208EN") || unitId.contains("NPA101E"))
                         && !properties.isIgnoreVendorConfigFile(sessionData);
         if (useVendorConfigFile) {
-            log.debug("VendorConfigFile object will be requested (default behavior)");
+            log.debug("VendorConfigFile object will be requested (default behavior)"); // 将请求VendorConfigFile对象（默认行为）"
         } else {
-            log.debug("VendorConfigFile object will not be requested. (quirk behavior: old Pingcom device or quirk enabled)");
+            log.debug("VendorConfigFile object will not be requested. (quirk behavior: old Pingcom device or quirk enabled)"); // 不会请求VendorConfigFile对象。（特性行为：旧的Pingcom设备或启用了特性）"
         }
 
         int counter = 0;
@@ -104,6 +104,6 @@ public class GetParameterValuesResponseCreateStrategy implements ResponseCreateS
                 counter++;
             }
         }
-        log.debug(counter + " cpe-param (not found in database, but of special interest to ACS) added to the GPV-request");
+        log.debug(counter + " cpe-param (not found in database, but of special interest to ACS) added to the GPV-request"); // " + counter + "个cpe参数（在数据库中未找到，但对ACS有特殊意义）已添加到GPV请求"
     }
 }

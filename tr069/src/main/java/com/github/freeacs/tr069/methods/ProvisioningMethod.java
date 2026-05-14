@@ -29,6 +29,7 @@ public enum ProvisioningMethod {
 
     /**
      * Extract request method name.
+     * 提取请求方法名称。
      */
     public static ProvisioningMethod fromString(final String mehtodAsString) {
         return Stream.of(values())

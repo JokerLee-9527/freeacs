@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 /**
- * TR069SessionID is a container of the TR-069 Session ID sent from the CPE to the ACS.
+ * TR069SessionID is a container of the TR-069 Session ID sent from the CPE to the ACS. TR069SessionID是包含从CPE发送到ACS的TR-069会话ID的容器。
  *
  * @author morten
  */

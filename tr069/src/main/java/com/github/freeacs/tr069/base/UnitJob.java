@@ -25,11 +25,13 @@ public class UnitJob {
    * Requires a job to trigger the provisioning 4. Not possible to change profile for a unit
    * (Additionally Telnet-provisioning (which is server-side) also has another speciality) 5.
    * Handles params quite differently, every param is paired with a parse-param
+   * 服务器端配置与TR-069/TFTP/HTTP在几个方面不同 1. 从服务器端触发 2. 连续/同步 - 不分成多个会话（执行/验证） 3. 需要作业来触发配置 4. 无法更改设备的配置文件（此外，Telnet配置（也是服务器端）还有另一个特点） 5. 处理参数的方式非常不同，每个参数都与一个解析参数配对
    *
    * <p>These differences have several implications: a. Job-current parameter is not needed (ref 2.)
    * b. Job-object is known at all times - don't need to read it from Job-current-parameter (ref a.,
    * 2.) c. Handles only Job-history/Disruptive params here, rest is handled in TelnetJobThread (ref
    * 5.)
+   * 这些差异有几个影响：a. 不需要Job-current参数（参考2.）b. Job对象始终已知 - 不需要从Job-current-parameter读取（参考a.，2.）c. 这里只处理Job-history/Disruptive参数，其余在TelnetJobThread中处理（参考5.）
    */
   private final boolean serverSideJob;
 
@@ -48,6 +50,7 @@ public class UnitJob {
   /**
    * This method updates the sessiondata object with the job parameters. Specifically it updates:
    * oweraparameters: job-current fromDB : all job-parameters (except job-current/job-history)
+   * 此方法使用作业参数更新sessiondata对象。具体更新：oweraparameters: job-current fromDB : 所有作业参数（除了job-current/job-history）
    */
   private void updateSessionWithJobParams() {
     Map<String, JobParameter> jobParams = job.getDefaultParameters();
@@ -64,6 +67,7 @@ public class UnitJob {
    * Computes the history parameter. This parameter will add the newest jobId to the front of the
    * parameter. Job id which refer to a no longer existing job will be removed from the
    * comma-separated list.
+   * 计算历史参数。此参数会将最新的jobId添加到参数的前面。引用不再存在的作业的jobId将从逗号分隔的列表中删除。
    */
   private UnitParameter makeHistoryParameter(Integer jobId) {
     Unittype unittype = sessionData.getUnittype();
@@ -88,7 +92,7 @@ public class UnitJob {
       JobHistoryEntry jhEntry = new JobHistoryEntry(entry);
       Job entryJob = sessionData.getUnittype().getJobs().getById(Integer.valueOf(String.valueOf(jhEntry.getJobId())));
       if (entryJob != null) {
-        if (Objects.equals(entryJob.getId(), jobId)) { // inc repeated-counter
+        if (Objects.equals(entryJob.getId(), jobId)) { // inc repeated-counter // 增加重复计数器
           jh2.append(jhEntry.incEntry(tms)).append(",");
           found = true;
         } else {
@@ -107,6 +111,7 @@ public class UnitJob {
    * These steps are performed when starting a job: - write job-current parameter to DB (with
    * job.getId()) if asynchronous mode - write unit-job entry to DB - update session data with job
    * parameters - update session data with profile parameters - update session data with job current
+   * 启动作业时执行这些步骤：- 将job-current参数写入数据库（使用job.getId()）（如果是异步模式）- 将unit-job条目写入数据库 - 使用作业参数更新会话数据 - 使用配置文件参数更新会话数据 - 使用job current更新会话数据
    */
   public void start() {
     try {
@@ -140,6 +145,7 @@ public class UnitJob {
    * unit-job entry to DB (ok) - write job parameters to DB - write job-current to DB (as "") -
    * write job-history to DB (remove old jobs) - read unit again and update session data (must clear
    * fromDB to do this) Else - write unit-job entry to DB (failed) - write job-current to DB (as "")
+   * 停止作业时执行这些步骤：如果成功 - 将profile-change写入数据库 - 将unit-job条目写入数据库（ok）- 将作业参数写入数据库 - 将job-current写入数据库（为""）- 将job-history写入数据库（删除旧作业）- 再次读取设备并更新会话数据（必须清除fromDB才能执行此操作）否则 - 将unit-job条目写入数据库（failed）- 将job-current写入数据库（为""）
    */
   public void stop(String unitJobStatus, boolean isDiscoveryMode) {
     try {
@@ -158,6 +164,7 @@ public class UnitJob {
             dbi);
         sessionData.getPIIDecision().setCurrentJobStatus(unitJobStatus);
         // Write directly to database, no queuing, since the all data are flushed in next step (most likely)
+        // 直接写入数据库，不排队，因为所有数据很可能在下一步被刷新
         ACSUnit acsUnit = dbi.getACSUnit();
         acsUnit.addOrChangeUnitParameters(upList);
         if (!serverSideJob) {

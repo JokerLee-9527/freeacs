@@ -28,7 +28,7 @@ public class SessionDataCacheCleanup implements CleanupNotifier {
             + ") was removed from cache after timeout - indicate a session which did not terminate correctly");
 
     ProvisioningMessage pm = sessionData.getProvisioningMessage();
-    if (pm != null) { // only available if run in a TR-069 server (not in SPP-server)
+    if (pm != null) { // only available if run in a TR-069 server (not in SPP-server) // 仅在TR-069服务器中运行时可用（不在SPP服务器中）
       pm.setErrorMessage(
           "TR-069 session was aborted - most probably because the client did not respond");
       pm.setErrorResponsibility(ErrorResponsibility.CLIENT);

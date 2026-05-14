@@ -119,8 +119,8 @@ public class EmptyDecisionStrategy implements DecisionStrategy {
             }
         }
         sessionData.setToDB(toDB);
-        DBIActions.writeUnitParams(sessionData); // queue-parameters - will be written at end-of-session
-        if (!queue) { // execute changes immediately - since otherwise these parameters will be lost (in the event of GPNRes.process())
+        DBIActions.writeUnitParams(sessionData); // queue-parameters - will be written at end-of-session // 队列参数 - 将在会话结束时写入
+        if (!queue) { // execute changes immediately - since otherwise these parameters will be lost (in the event of GPNRes.process()) // 如果不排队则立即执行更改 - 否则这些参数将丢失（在GPNRes.process()事件中）
             dbi.getACSUnit().addOrChangeQueuedUnitParameters(sessionData.getUnit());
         }
         sessionData.setToDB(null);

@@ -4,9 +4,9 @@ import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * The class is responsible for parsing the Event entity and populating the EventList which is a
- * list of EventStruct objects (Note that each EventStruct object has two parameters called the
- * EventCode and the CommandKey).
+ * The class is responsible for parsing the Event entity and 和 populating the EventList which is a
+ * list of EventStruct objects (Note that each EventStruct object has two parameters called the EventStruct对象的列表（注意每个EventStruct对象有两个参数称为
+ * EventCode and 和 the Command 和Key).
  */
 public class EventHandler extends DefaultHandler {
   static final String EVENT_TAG = "Event";

@@ -13,7 +13,7 @@ public class XMLFormatterUtils {
     }
 
     private static class XMLFormatter {
-        /** Filter away all illegal XML characters. */
+        /** Filter away all illegal XML characters. 过滤所有非法的XML字符。 */
         static String filter(String unfilteredXml) {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < unfilteredXml.length(); i++) {
@@ -43,12 +43,10 @@ public class XMLFormatterUtils {
                         formattedXml.append("\n").append(tabs(startTagCounter)).append(node);
                     } else {
                         formattedXml.append(tabs(startTagCounter)).append(node);
-                    } // start-tag following an end-tag
-                    startTagCounter++;
+                    }   // start-tag following an end-tag // 结束标签后的开始标签
                 } else if (node.getType() == NodeType.CONTENT) {
                     formattedXml.append(node);
-                } else { // NodeType.ENDTAG
-                    startTagCounter--;
+                } else { // NodeType.ENDTAG // 节点类型.结束标签
                     if (previousNode != null && previousNode.getType() == NodeType.ENDTAG) {
                         formattedXml.append(tabs(startTagCounter)).append(node);
                     } else {
@@ -97,7 +95,7 @@ public class XMLFormatterUtils {
      *
      * <p>A series of convenience methods are supplied to ease the burden of the developer. Because
      * inlining the checks can improve per character performance, the tables of character properties are
-     * public. Using the character as an index into the <code>CHARS</code> array and applying the
+     * public. Using the character as an index into the <code>CHARS</code> array and 和 applying the
      * appropriate mask flag (e.g. <code>MASK_VALID</code>), yields the same results as calling the
      * convenience methods. There is one exception: check the comments for the <code>isValid</code>
      * method for details.
@@ -110,78 +108,76 @@ public class XMLFormatterUtils {
      * @version $Id: XMLChar.java,v 1.7 2002/01/29 01:15:18 lehors Exp $
      */
     private static class XMLChar {
-        // Constants
+        // Constants // 常量
 
-        /** Character flags. */
+        /** Character flags. 字符标志。 */
         private static final byte[] CHARS = new byte[1 << 16];
 
-        /** Valid character mask. */
+        /** Valid character mask. 有效字符掩码。 */
         private static final int MASK_VALID = 0x01;
 
-        /** Space character mask. */
+        /** Space character mask. 空格字符掩码。 */
         private static final int MASK_SPACE = 0x02;
 
-        /** Name start character mask. */
+        /** Name start character mask. 名称起始字符掩码。 */
         private static final int MASK_NAME_START = 0x04;
 
-        /** Name character mask. */
+        /** Name character mask. 名称字符掩码。 */
         private static final int MASK_NAME = 0x08;
 
-        /** Pubid character mask. */
+        /** Pubid character mask. Pubid字符掩码。 */
         private static final int MASK_PUBID = 0x10;
 
         /**
-         * Content character mask. Special characters are those that can be considered the start of
-         * markup, such as '&lt;' and '&amp;'. The various newline characters are considered special as
-         * well. All other valid XML characters can be considered content.
+         * Content character mask. Special characters are those that can be considered the start of 内容字符掩码。特殊字符是那些可以被视为标记开始的字符
+         * markup, such as '&lt;' and 和 '&amp;'. The various newline characters are considered special as
+         * well. All other valid XML characters can be considered content. 所有其他有效的XML字符都可以被视为内容。
          *
-         * <p>This is an optimization for the inner loop of character scanning.
+         * <p>This is an optimization for the inner loop of character scanning. 这是对字符扫描内部循环的优化。
          */
         private static final int MASK_CONTENT = 0x20;
 
-        /** NCName start character mask. */
+        /** NCName start character mask. NCName起始字符掩码。 名称起始字符掩码。 */
         private static final int MASK_NCNAME_START = 0x40;
 
-        /** NCName character mask. */
+        /** NCName character mask. NCName字符掩码。 名称字符掩码。 */
         private static final int MASK_NCNAME = 0x80;
 
         static {
-            // [2] Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] |
-            //              [#xE000-#xFFFD] | [#x10000-#x10FFFF]
+            // [2] Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] | // 中文翻译
+            // [#xE000-#xFFFD] | [#x10000-#x10FFFF] // 中文翻译
 
             int[] charRange = {
                     0x0009, 0x000A, 0x000D, 0x000D, 0x0020, 0xD7FF, 0xE000, 0xFFFD,
             };
 
-            // [3] S ::= (#x20 | #x9 | #xD | #xA)+
+            // [3] S ::= (#x20 | #x9 | #xD | #xA)+ // 中文翻译
 
             int[] spaceChar = {
                     0x0020, 0x0009, 0x000D, 0x000A,
             };
 
-            // [4] NameChar ::= Letter | Digit | '.' | '-' | '_' | ':' |
-            //                  CombiningChar | Extender
+            // [4] NameChar ::= Letter | Digit | '.' | '-' | '_' | ':' | // 中文翻译
+            // CombiningChar | Extender // 中文翻译
 
             int[] nameChar = {
-                    0x002D, 0x002E, // '-' and '.'
-            };
+                    0x002D, 0x002E, // '-' and '.' // 和
 
-            // [5] Name ::= (Letter | '_' | ':') (NameChar)*
+            // [5] Name ::= (Letter | '_' | ':') (NameChar)* // 中文翻译
 
             int[] nameStartChar = {
-                    0x003A, 0x005F, // ':' and '_'
-            };
+                    0x003A, 0x005F, // ':' and '_' // 和
 
-            // [13] PubidChar ::= #x20 | 0xD | 0xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%]
+            // [13] PubidChar ::= #x20 | 0xD | 0xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%] // 中文翻译
 
             int[] pubidChar = {0x000A, 0x000D, 0x0020, 0x0021, 0x0023, 0x0024, 0x0025, 0x003D, 0x005F};
 
             int[] pubidRange = {0x0027, 0x003B, 0x003F, 0x005A, 0x0061, 0x007A};
 
-            // [84] Letter ::= BaseChar | Ideographic
+            // [84] Letter ::= BaseChar | Ideographic // 基本字符
 
             int[] letterRange = {
-                    // BaseChar
+                    // BaseChar // 基本字符
                     0x0041,
                     0x005A,
                     0x0061,
@@ -480,14 +476,14 @@ public class XMLFormatterUtils {
                     0x312C,
                     0xAC00,
                     0xD7A3,
-                    // Ideographic
+                    // Ideographic // 表意字符
                     0x3021,
                     0x3029,
                     0x4E00,
                     0x9FA5,
             };
             int[] letterChar = {
-                    // BaseChar
+                    // BaseChar // 基本字符
                     0x0386,
                     0x038C,
                     0x03DA,
@@ -540,11 +536,11 @@ public class XMLFormatterUtils {
                     0x1FBE,
                     0x2126,
                     0x212E,
-                    // Ideographic
+                    // Ideographic // 表意字符
                     0x3007,
             };
 
-            // [87] CombiningChar ::= ...
+            // [87] CombiningChar ::= ... // 中文翻译
 
             int[] combiningCharRange = {
                     0x0300, 0x0345, 0x0360, 0x0361, 0x0483, 0x0486, 0x0591, 0x05A1,
@@ -573,7 +569,7 @@ public class XMLFormatterUtils {
                     0x0F97, 0x0FB9, 0x20E1, 0x3099, 0x309A,
             };
 
-            // [88] Digit ::= ...
+            // [88] Digit ::= ... // 中文翻译
 
             int[] digitRange = {
                     0x0030, 0x0039, 0x0660, 0x0669, 0x06F0, 0x06F9, 0x0966, 0x096F,
@@ -582,7 +578,7 @@ public class XMLFormatterUtils {
                     0x0E50, 0x0E59, 0x0ED0, 0x0ED9, 0x0F20, 0x0F29,
             };
 
-            // [89] Extender ::= ...
+            // [89] Extender ::= ... // 中文翻译
 
             int[] extenderRange = {
                     0x3031, 0x3035, 0x309D, 0x309E, 0x30FC, 0x30FE,
@@ -592,32 +588,32 @@ public class XMLFormatterUtils {
                     0x00B7, 0x02D0, 0x02D1, 0x0387, 0x0640, 0x0E46, 0x0EC6, 0x3005,
             };
 
-            // SpecialChar ::= '<', '&', '\n', '\r', ']'
+            // SpecialChar ::= '<', '&', '\n', '\r', ']' // 中文翻译
 
             int[] specialChar = {
                     '<', '&', '\n', '\r', ']',
             };
 
-            // Initialize
+            // Initialize // 初始化
 
-            // set valid characters
+            // set valid characters // 设置有效字符
             for (int i = 0; i < charRange.length; i += 2) {
                 for (int j = charRange[i]; j <= charRange[i + 1]; j++) {
                     CHARS[j] |= MASK_VALID | MASK_CONTENT;
                 }
             }
 
-            // remove special characters
+            // remove special characters // 移除特殊字符
             for (int aSpecialChar : specialChar) {
                 CHARS[aSpecialChar] = (byte) (CHARS[aSpecialChar] & ~MASK_CONTENT);
             }
 
-            // set space characters
+            // set space characters // 设置空格字符
             for (int aSpaceChar : spaceChar) {
                 CHARS[aSpaceChar] |= MASK_SPACE;
             }
 
-            // set name start characters
+            // set name start characters // 设置名称起始字符
             for (int aNameStartChar : nameStartChar) {
                 CHARS[aNameStartChar] |= (byte) (MASK_NAME_START | MASK_NAME | MASK_NCNAME_START | MASK_NCNAME);
             }
@@ -630,7 +626,7 @@ public class XMLFormatterUtils {
                 CHARS[aLetterChar] |= (byte) (MASK_NAME_START | MASK_NAME | MASK_NCNAME_START | MASK_NCNAME);
             }
 
-            // set name characters
+            // set name characters // 设置名称字符
             for (int aNameChar : nameChar) {
                 CHARS[aNameChar] |= (byte) (MASK_NAME | MASK_NCNAME);
             }
@@ -656,10 +652,10 @@ public class XMLFormatterUtils {
                 CHARS[anExtenderChar] |= (byte) (MASK_NAME | MASK_NCNAME);
             }
 
-            // remove ':' from allowable MASK_NCNAME_START and MASK_NCNAME chars
+            // remove ':' from allowable MASK_NCNAME_START and MASK_NCNAME chars // 从允许的MASK_NCNAME_START和MASK_NCNAME字符中移除':'
             CHARS[':'] &= (byte) ~(MASK_NCNAME_START | MASK_NCNAME);
 
-            // set Pubid characters
+            // set Pubid characters // 设置Pubid字符
             for (int aPubidChar : pubidChar) {
                 CHARS[aPubidChar] |= MASK_PUBID;
             }
@@ -668,7 +664,7 @@ public class XMLFormatterUtils {
                     CHARS[j] |= MASK_PUBID;
                 }
             }
-        } // <clinit>()
+        } // <clinit>() // 中文翻译
 
         /**
          * Returns true if the specified character is valid. This method also checks the surrogate
@@ -681,9 +677,7 @@ public class XMLFormatterUtils {
          */
         private static boolean isValid(int c) {
             return (c < 0x10000 && (CHARS[c] & MASK_VALID) != 0) || (0x10000 <= c && c <= 0x10FFFF);
-        } // isValid(int):boolean
-    } // class XMLChar
-
+        } // isValid(int):boolean // 中文翻译
     private enum NodeType {
         CONTENT,
         STARTTAG,

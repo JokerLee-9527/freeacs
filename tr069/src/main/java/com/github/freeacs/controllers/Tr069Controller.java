@@ -35,6 +35,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * This is the "main-class" of TR069 Provisioning. It receives the HTTP-request from the CPE and
  * returns an HTTP-response. The content of the request/reponse can be both TR-069 request/response.
+ * 这是TR069配置的"主类"。它接收来自CPE的HTTP请求并返回HTTP响应。
+ * 请求/响应的内容可以是TR-069请求或响应。
  */
 @Slf4j
 @RestController
@@ -53,9 +55,11 @@ public class Tr069Controller {
 
     /**
      * This is the entry point for TR-069 Clients - everything starts here!!!
+     * 这是TR-069客户端的入口点 - 一切从这里开始！！！
      *
      * <p>A TR-069 session consists of many rounds of HTTP request/responses, however each
      * request/response non-the-less follows a standard pattern:
+     * 一个TR-069会话由多轮HTTP请求/响应组成，但每个请求/响应都遵循标准模式：
      *
      * <p>1. Check special HTTP headers for a "early return" (CONTINUE) 2. Check authentication -
      * challenge client if necessary. If not authenticated - return 3. Check concurrent sessions from
@@ -64,16 +68,30 @@ public class Tr069Controller {
      * - may contain logic that processes the request and decide response 7. Produce HTTP Response
      * (xml-creation) 8. Some details about the xml-response like content-type/Empty response 9.
      * Return response to TR-069 client
+     * 1. 检查特殊HTTP头以进行"提前返回"(CONTINUE)
+     * 2. 检查认证 - 必要时质询客户端。如果未认证 - 返回
+     * 3. 检查来自同一设备的并发会话 - 如果检测到：返回
+     * 4. 从请求中提取XML - 存储在sessionData对象中
+     * 5. 处理HTTP请求（xml解析，查找方法名，测试验证）
+     * 6. 决定下一步 - 可能包含处理请求并决定响应的逻辑
+     * 7. 生成HTTP响应（xml创建）
+     * 8. 关于xml响应的一些细节，如content-type/空响应
+     * 9. 返回响应给TR-069客户端
      *
      * <p>At the end we have error handling, to make sure that no matter what, we do return an EMTPY
      * response to the client - to signal end of conversation/TR-069-session.
+     * 最后我们有错误处理，确保无论如何我们都返回一个空响应给客户端 - 以表示对话/TR-069会话结束。
      *
      * <p>In the finally loop we check if a TR-069 Session is in-fact completed (one way or the other)
      * and if so, logging is performed. Also, if unit-parameters are queued up for writing, those will
      * be written now (instead of writing some here and some there along the entire TR-069 session).
+     * 在finally循环中，我们检查TR-069会话是否实际完成（无论何种方式），
+     * 如果是，则执行日志记录。此外，如果有排队等待写入的设备参数，现在将写入
+     * （而不是在整个TR-069会话中分散写入）。
      *
      * <p>In special cases the server will kick the device to "come back" and continue testing a new
      * test case.
+     * 在特殊情况下，服务器会踢设备"回来"并继续测试新的测试用例。
      */
     @PostMapping(value = {"${context-path}", "${context-path}/prov"})
     public ResponseEntity<String> doPost(Authentication authentication,
@@ -134,7 +152,7 @@ public class Tr069Controller {
         return responseHeaders;
     }
 
-    // every 5 minute
+    // every 5 minute 每5分钟
     @Scheduled(cron = "0 0/5 * * * *")
     private void scheduleActiveDeviceDetectionTask() {
         final ActiveDeviceDetectionTask activeDeviceDetectionTask =
@@ -143,7 +161,7 @@ public class Tr069Controller {
         activeDeviceDetectionTask.run();
     }
 
-    // every 1 second
+    // every 1 second 每1秒
     @Scheduled(cron = "* * * ? * *")
     private void scheduleKickTask() {
         final ScheduledKickTask scheduledKickTask =
@@ -152,7 +170,7 @@ public class Tr069Controller {
         scheduledKickTask.run();
     }
 
-    // every 5 sec
+    // every 5 sec 每5秒
     @Scheduled(cron = "0/5 * * ? * *")
     private void scheduleMessageListenerTask() {
         final MessageListenerTask messageListenerTask =

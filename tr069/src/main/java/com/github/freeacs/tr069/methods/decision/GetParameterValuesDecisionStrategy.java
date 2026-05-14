@@ -157,15 +157,15 @@ public class GetParameterValuesDecisionStrategy implements DecisionStrategy {
 
         UnitJob uj = null;
         if (!sessionData.isJobUnderExecution()) {
-            // update unit-parameters with data from CPE, to get correct
-            // group-matching in job-search
-            // will not affect the comparison in populateToCollections()
+            // update unit-parameters with data from CPE, to get correct // 用CPE数据更新设备参数，以获得正确的
+            // group-matching in job-search // 作业搜索中的组匹配
+            // will not affect the comparison in populateToCollections() // 不会影响populateToCollections()中的比较
             updateUnitParameters(sessionData);
-            uj = JobLogic.checkNewJob(sessionData, dbi, concurrentDownloadLimit); // may find a new job
+            uj = JobLogic.checkNewJob(sessionData, dbi, concurrentDownloadLimit); // may find a new job // 可能找到新作业
         }
         Job job = sessionData.getJob();
-        if (job != null) { // No job is present - process according to
-            // profile/unit-parameters
+        if (job != null) { // No job is present - process according to // 没有作业存在 - 根据配置文件/设备参数处理
+            // profile/unit-parameters // 配置文件/设备参数
             jobProvisioning(reqRes, job, uj, isDiscoveryMode, publicUrl);
         } else {
             normalPriorityProvisioning(reqRes, publicUrl, concurrentDownloadLimit);
@@ -204,11 +204,11 @@ public class GetParameterValuesDecisionStrategy implements DecisionStrategy {
             if (type == JobType.SHELL) {
                 sessionData.getProvisioningMessage().setProvOutput(ProvisioningMessage.ProvOutput.SHELL);
                 ShellJobLogic.execute(sessionData, dbi, job, unitJob, isDiscoveryMode, scriptExecutions);
-            } else { // type == JobType.CONFIG
-                // The service-window is unimportant for next PII calculation, will
-                // be set to 31 no matter what, since a job is "in the process".
+            } else { // type == JobType.CONFIG // 否则类型 == JobType.CONFIG
+                // The service-window is unimportant for next PII calculation, will // 服务窗口对下一次PII计算不重要，将
+                // be set to 31 no matter what, since a job is "in the process". // 无论什么情况都将设置为31，因为作业正在"进行中"。
                 sessionData.getProvisioningMessage().setProvOutput(ProvisioningMessage.ProvOutput.CONFIG);
-                // ServiceWindow serviceWindow = new ServiceWindow(sessionData, false);
+                // ServiceWindow serviceWindow = new ServiceWindow(sessionData, false); // ServiceWindow serviceWindow = new ServiceWindow(sessionData, false);
                 prepareSPVForConfigJob(sessionData);
             }
             reqRes.getResponseData().setMethod(ProvisioningMethod.SetParameterValues.name());
@@ -226,7 +226,7 @@ public class GetParameterValuesDecisionStrategy implements DecisionStrategy {
         } else {
             if (utps.getByName(PII) != null) {
                 log.error("The CPE did not return PeriodicInformInterval, terminating the conversation.");
-            } else { // (cpeParams.getValue(PII) == null)
+            } else { // (cpeParams.getValue(PII) == null) // 否则（cpeParams.getValue(PII) == null）
                 log.error("The unittype does not contain PeriodicInformInterval, terminating the conversation.");
             }
             return false;
@@ -268,8 +268,8 @@ public class GetParameterValuesDecisionStrategy implements DecisionStrategy {
 
     @SuppressWarnings("Duplicates")
     private void prepareSPVForConfigJob(SessionData sessionData) throws TR069Exception {
-        // populate to collections from job-params
-        // impl.
+        // populate to collections from job-params // 从作业参数填充到集合
+        // impl. // 实现
         ParameterList toCPE = new ParameterList();
         TR069DMParameterMap dataModel;
         try {
@@ -287,7 +287,7 @@ public class GetParameterValuesDecisionStrategy implements DecisionStrategy {
 
             UnittypeParameterFlag upFlag = jup.getUnittypeParameter().getFlag();
             String jpValue = jup.getValue();
-            // ParameterValueStruct jpPvs = new ParameterValueStruct(jpName, jpValue);
+            // ParameterValueStruct jpPvs = new ParameterValueStruct(jpName, jpValue); // ParameterValueStruct jpPvs = new ParameterValueStruct(jpName, jpValue);
 
             if (upFlag.isSystem() || upFlag.isReadOnly()) {
                 log.debug("Skipped "
@@ -344,7 +344,7 @@ public class GetParameterValuesDecisionStrategy implements DecisionStrategy {
         String PII = cpeParams.PERIODIC_INFORM_INTERVAL;
         String nextPII = String.valueOf(sessionData.getPIIDecision().nextPII());
 
-        // Cleanup after all jobs have been completed
+        // Cleanup after all jobs have been completed // 所有作业完成后的清理
         String disruptiveJob = sessionData.getAcsParameters().getValue(SystemParameters.JOB_DISRUPTIVE);
         if ("1".equals(disruptiveJob)) {
             log.debug("No more jobs && disruptive flag set -> disruptive flag reset (to 0)");
@@ -387,6 +387,9 @@ public class GetParameterValuesDecisionStrategy implements DecisionStrategy {
      * in FA, something that CAN happen because we ask for a parameter from the CPE which is not
      * there. Usually this will happen because the firmware is no longer in sync with the unittype
      * definition.
+     * 遍历数据库中定义的所有参数，查看哪些参数在CPE中缺失。我们仅在GPV已运行两次时才执行此操作，
+     * 这清楚地表明第一次GPV导致FA，这可能是我们向CPE请求了一个不存在的参数导致的。
+     * 通常这是因为固件不再与设备类型定义同步。
      */
     @SuppressWarnings("Duplicates")
     private void logMissingCPEParams(SessionData sessionData) {
@@ -524,7 +527,7 @@ public class GetParameterValuesDecisionStrategy implements DecisionStrategy {
                 log.debug(msg(utp, cpeV, acsV, "No change", "Default action, the values should be equal"));
             }
         }
-        // List<RequestResponseData> reqResList = sessionData.getReqResList();
+        // List<RequestResponseData> reqResList = sessionData.getReqResList(); // 请求响应数据列表
         String previousMethod = sessionData.getMethodBeforePreviousResponseMethod();
         log.debug("PreviousResponseMethod before deciding on log missing cpe params: " + previousMethod);
         if (ProvisioningMethod.GetParameterValues.name().equals(previousMethod)) {
@@ -532,11 +535,11 @@ public class GetParameterValuesDecisionStrategy implements DecisionStrategy {
         }
         sessionData.setToCPE(toCPE);
         sessionData.setToDB(toDB);
-        // sessionData.setToSyslog(toSyslog);
+        // sessionData.setToSyslog(toSyslog); // sessionData.setToSyslog(toSyslog);
         log.debug(toCPE.getParameterValueList().size() + " params to CPE, " + toDB.size() + " params to ACS");
     }
 
-    /** Make sure unit parameters accurately represents CPE parameters. */
+    /** Make sure unit parameters accurately represents CPE parameters. */ // 确保设备参数准确表示CPE参数。
     @SuppressWarnings("Duplicates")
     private void updateUnitParameters(SessionData sessionData) {
         if (sessionData.getUnit() != null && sessionData.getUnit().getUnitParameters() != null) {
@@ -555,6 +558,7 @@ public class GetParameterValuesDecisionStrategy implements DecisionStrategy {
     /**
      * Extraction mode will read all parameters from the device and write them to the
      * unit_param_session table. No data will be written to unit_param table (provisioned data).
+     * 提取模式将从设备读取所有参数并将它们写入unit_param_session表。不会将数据写入unit_param表（已配置数据）。
      */
     @SuppressWarnings("Duplicates")
     private void processExtraction(HTTPRequestResponseData reqRes) throws TR069DatabaseException {
@@ -566,8 +570,8 @@ public class GetParameterValuesDecisionStrategy implements DecisionStrategy {
                         + " mode, "
                         + sessionData.getValuesFromCPE().size()
                         + " params from CPE may be copied to ACS session storage");
-        //		log.info(GetParameterValuesDecisionStrategyExtraction.class, "Provisioning in EXTRACTION mode, " +
-        // sessionData.getFromCPE().size() + " params from CPE may be copied to ACS session storage");
+        //		log.info(GetParameterValuesDecisionStrategyExtraction.class, "Provisioning in EXTRACTION mode, " + // 在EXTRACTION模式下进行配置，
+        // sessionData.getFromCPE().size() + " params from CPE may be copied to ACS session storage"); // 来自CPE的" + sessionData.getFromCPE().size() + "个参数可能被复制到ACS会话存储");
         for (int i = 0; i < sessionData.getValuesFromCPE().size(); i++) {
             ParameterValueStruct pvsCPE = sessionData.getValuesFromCPE().get(i);
             UnittypeParameter utp = utps.getByName(pvsCPE.getName());
