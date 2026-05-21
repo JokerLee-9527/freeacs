@@ -97,11 +97,13 @@ public class GetParameterValuesResponseCreateStrategy implements ResponseCreateS
         }
 
         int counter = 0;
-        for (String key : cpeParams.getCpeParams().keySet()) {
-            if ((key.endsWith(".") && useVendorConfigFile)
-                    || (paramValueMap.get(key) == null && utps.getByName(key) != null)) {
-                paramValueMap.put(key, new ParameterValueStruct(key, "ExtraCPEParam"));
-                counter++;
+        if (cpeParams != null && cpeParams.getCpeParams() != null && cpeParams.getCpeParams().size() > 0) {
+            for (String key : cpeParams.getCpeParams().keySet()) {
+                if ((key.endsWith(".") && useVendorConfigFile)
+                        || (paramValueMap.get(key) == null && utps.getByName(key) != null)) {
+                    paramValueMap.put(key, new ParameterValueStruct(key, "ExtraCPEParam"));
+                    counter++;
+                }
             }
         }
         log.debug(counter + " cpe-param (not found in database, but of special interest to ACS) added to the GPV-request");

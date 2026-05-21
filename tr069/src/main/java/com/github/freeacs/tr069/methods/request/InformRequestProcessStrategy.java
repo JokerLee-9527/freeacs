@@ -57,8 +57,11 @@ public class InformRequestProcessStrategy implements RequestProcessStrategy {
             sessionData.setUnitId(unitId);
             sessionData.setSerialNumber(deviceIdStruct.getSerialNumber());
             parseEvents(parser, sessionData);
-            parseParameters(sessionData, parser);
-            DBIActions.updateParametersFromDB(sessionData, isDiscoveryMode, dbi); // Unit-object is read and populated in SessionData
+            ParameterList parameterList = parser.getParameterList();
+            if (parameterList != null && !parameterList.getParameterValueList().isEmpty()) {
+                parseParameters(sessionData, parser);
+            }
+            DBIActions.updateParametersFromDB(sessionData, isDiscoveryMode, dbi);
             logPeriodicInformTiming(sessionData);
             ScheduledKickTask.removeUnit(unitId);
             if (isDiscoveryMode && sessionData.isFirstConnect()) {
@@ -80,7 +83,9 @@ public class InformRequestProcessStrategy implements RequestProcessStrategy {
                 log.debug("Unittype, profile and unit is created, since discovery mode is enabled and this is the first connect");
             }
             sessionData.getCommandKey().setServerKey(reqRes);
-            sessionData.getParameterKey().setServerKey(reqRes);
+            if (parameterList != null && !parameterList.getParameterValueList().isEmpty()) {
+                sessionData.getParameterKey().setServerKey(reqRes);
+            }
             boolean jobOk = JobLogic.checkJobOK(sessionData, dbi, isDiscoveryMode);
             sessionData.setJobUnderExecution(!jobOk);
         } catch (SQLException e) {
