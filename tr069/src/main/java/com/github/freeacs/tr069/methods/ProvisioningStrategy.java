@@ -73,11 +73,12 @@ public abstract class ProvisioningStrategy {
          */
         private void logConversationRequest(HTTPRequestResponseData reqRes) {
             String unitId = Optional.ofNullable(reqRes.getSessionData().getUnitId()).orElse("Unknown");
+            String clientAddr = reqRes.getClientAddress();
             String xml = reqRes.getRequestData().getParser().getRawXMLForDebugging();
             if (xml != null && properties.isPrettyPrintQuirk(reqRes.getSessionData())) {
                 xml = XMLFormatterUtils.prettyPrintXmlString(xml);
             }
-            Log.conversation(reqRes.getSessionData(), "============== FROM CPE ( " + unitId + " ) TO ACS ===============\n" + xml);
+            Log.conversation(reqRes.getSessionData(), "============== FROM CPE ( " + unitId + " ) [" + clientAddr + "] TO ACS ===============\n" + xml);
         }
 
         /**
@@ -85,7 +86,8 @@ public abstract class ProvisioningStrategy {
          */
         private void logConversationResponse(HTTPRequestResponseData reqRes, String responseStr) {
             String unitId = Optional.ofNullable(reqRes.getSessionData().getUnitId()).orElse("Unknown");
-            Log.conversation(reqRes.getSessionData(), "=============== FROM ACS TO ( " + unitId + " ) ============\n" + responseStr + "\n");
+            String clientAddr = reqRes.getClientAddress();
+            Log.conversation(reqRes.getSessionData(), "=============== FROM ACS TO ( " + unitId + " ) [" + clientAddr + "] ============\n" + responseStr + "\n");
         }
 
         /**

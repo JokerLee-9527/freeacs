@@ -36,6 +36,7 @@ public class HTTPRequestResponseData {
     this.responseData = new HTTPResponseData();
 
     String sessionId = rawRequest.getSession().getId();
+    log.error("---------------sessionId: " + sessionId + " ---------------");
     try {
       sessionData = (SessionData) BaseCache.getSessionData(sessionId);
     } catch (BaseCacheException tr069Ex) {
@@ -64,5 +65,13 @@ public class HTTPRequestResponseData {
 
   public String getRealIPAddress() {
     return Optional.ofNullable(rawRequest.getHeader("X-Real-IP")).orElseGet(rawRequest::getRemoteAddr);
+  }
+
+  public int getRemotePort() {
+    return rawRequest.getRemotePort();
+  }
+
+  public String getClientAddress() {
+    return getRealIPAddress() + ":" + getRemotePort();
   }
 }
