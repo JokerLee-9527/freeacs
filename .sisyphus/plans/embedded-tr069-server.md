@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-> **目标**: 新建 `EmbeddedTR069Server` 模块，打包为 **可复用的 JAR 库**，供其他程序调用。不依赖 Spring Boot，支持自由启停，使用 Netty 实现 HTTP 服务器，支持高并发。
+> **目标**: 新建 `EmbeddedTR069Server` 模块，打包为 **可复用的 JAR 库**，供其他程序调用。不依赖 Spring Boot，支持自由启停，使用 Netty 实现 HTTP 服务器，支持高并发。**目标 JDK 版本: Java 8**。
 > 
 > **核心策略**: 通过适配器模式解耦 Servlet 依赖，复用现有 `tr069` 模块的核心逻辑，仅替换 HTTP 层、认证层、调度层和配置层。提供清晰的 Builder API 和事件监听机制。
 > 
@@ -425,6 +425,81 @@ Netty 请求接收
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
+---
+
+## JDK 8 兼容性说明
+
+### JDK 8 环境配置
+
+```bash
+# JDK 8 安装路径
+export JAVA_HOME=/mnt/d/lijian/tools/jdk/jdk1.8.0_491_linux
+export PATH=$JAVA_HOME/bin:$PATH
+
+# 验证 JDK 版本
+java -version
+# 应输出: java version "1.8.0_491"
+```
+
+### 编码限制
+
+| 特性 | JDK 8 状态 | 替代方案 |
+|------|-----------|----------|
+| **var 关键字** | ❌ 不支持 | 使用显式类型声明 |
+| **Record** | ❌ 不支持 | 使用 Lombok `@Data` 或普通类 |
+| **Text Blocks** | ❌ 不支持 | 使用字符串拼接或常量 |
+| **Sealed Classes** | ❌ 不支持 | 使用普通继承 |
+| **Stream.takeWhile()** | ❌ 不支持 | 使用 `filter()` + 自定义逻辑 |
+| **Optional.ifPresentOrElse()** | ❌ 不支持 | 使用 `if (opt.isPresent())` |
+| **LocalDate/DateTime** | ✅ 支持 | 可直接使用 |
+| **Lambda** | ✅ 支持 | 可直接使用 |
+| **Stream API** | ✅ 支持 (部分) | 大部分可用 |
+| **Method Reference** | ✅ 支持 | 可直接使用 |
+
+### 代码示例 (JDK 8 兼容)
+
+```java
+// ❌ JDK 11+ 写法
+var server = TR069Server.builder().build();
+
+// ✅ JDK 8 写法
+TR069Server server = TR069Server.builder().build();
+
+// ❌ JDK 14+ Record
+public record SessionSummary(String unitId, String method, long durationMs) {}
+
+// ✅ JDK 8 + Lombok
+@Data
+public class SessionSummary {
+    private String unitId;
+    private String method;
+    private long durationMs;
+}
+
+// ❌ JDK 15+ Text Block
+String xml = """
+    <soap:Envelope>
+        <soap:Body/>
+    </soap:Envelope>
+    """;
+
+// ✅ JDK 8 String
+String xml = "<soap:Envelope>\n" +
+             "    <soap:Body/>\n" +
+             "</soap:Envelope>";
+```
+
+### Lombok 依赖 (JDK 8 兼容)
+
+```xml
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <version>1.18.30</version>
+    <scope>provided</scope>
+</dependency>
+```
+
 ## Work Objectives
 
 ### Core Objective
@@ -472,6 +547,7 @@ Netty 请求接收
 - 三个后台调度任务
 - 高并发 (I/O 线程与业务线程隔离)
 - 线程安全，支持多实例运行
+- **JDK 8 兼容**
 
 ### Must NOT Have (Guardrails)
 
@@ -924,6 +1000,12 @@ tr069.workerThreads=64
     <artifactId>embedded-tr069-server</artifactId>
     <packaging>jar</packaging>
     
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <java.version>1.8</java.version>
+    </properties>
+    
     <dependencies>
         <!-- 复用现有模块 -->
         <dependency>
@@ -943,7 +1025,7 @@ tr069.workerThreads=64
             <artifactId>dbi</artifactId>
         </dependency>
         
-        <!-- Netty -->
+        <!-- Netty (JDK 8 兼容版本) -->
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
@@ -953,6 +1035,16 @@ tr069.workerThreads=64
     
     <build>
         <plugins>
+            <!-- JDK 8 编译 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
             <!-- 生成可依赖的 JAR -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -977,6 +1069,11 @@ tr069.workerThreads=64
     <artifactId>embedded-tr069-server-test</artifactId>
     <packaging>jar</packaging>
     
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+    
     <dependencies>
         <!-- 依赖 embedded-tr069-server -->
         <dependency>
@@ -989,7 +1086,7 @@ tr069.workerThreads=64
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
-            <version>5.0.1</version>
+            <version>4.0.3</version>  <!-- JDK 8 兼容版本 -->
         </dependency>
         <dependency>
             <groupId>org.mariadb.jdbc</groupId>
@@ -1001,12 +1098,30 @@ tr069.workerThreads=64
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.4.11</version>
+            <version>1.2.12</version>  <!-- JDK 8 兼容版本 -->
+        </dependency>
+        
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.30</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
     
     <build>
         <plugins>
+            <!-- JDK 8 编译 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
             <!-- 可执行 JAR -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -1036,6 +1151,10 @@ tr069.workerThreads=64
 ### 运行测试程序
 
 ```bash
+# 设置 JDK 8 环境
+export JAVA_HOME=/mnt/d/lijian/tools/jdk/jdk1.8.0_491_linux
+export PATH=$JAVA_HOME/bin:$PATH
+
 # 1. 编译整个项目
 ./mvnw clean package -DskipTests
 
@@ -1052,6 +1171,14 @@ curl -X POST http://localhost:8080/tr069 \
     -H "SOAPAction: " \
     -u "device-001:secret" \
     -d @inform.xml
+```
+
+### 编译验证
+
+```bash
+# 检查编译目标版本 (确保是 JDK 8)
+javap -verbose embedded-tr069-server/target/classes/com/github/freeacs/embedded/TR069Server.class | grep "major version"
+# 应输出: major version: 52 (JDK 8 对应 major version 52)
 ```
 
 ---
