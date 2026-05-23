@@ -16,9 +16,9 @@
 > - 独立认证模块 (Basic/Digest)
 > - 独立调度器
 > 
-> **Estimated Effort**: Large
+> **Estimated Effort**: Large (21 tasks + 4 verification)
 > **Parallel Execution**: YES - 4 waves
-> **Critical Path**: Adapter接口 → HTTPRequestResponseData适配 → Netty服务器 → 主类集成
+> **Critical Path**: Task 2 → Task 8 → Task 13 → Task 15 → Task 16
 
 ---
 
@@ -333,7 +333,328 @@ private Syslog createSyslog(DataSource dataSource) {
 
 ### 5. 配置项完整清单
 
+---
+
+## 关键问题补充
+
+### 1. FileController 遗漏
+
+**问题**: TR-069 Download 方法需要从 `/file/{fileType}/{version}/{unitTypeName}` 下载固件/脚本
+
+**当前 FileController.java**:
 ```java
+@RestController
+public class FileController {
+  @GetMapping("${context-path}" + CTX_PATH + "/{fileType}/{firmwareVersion}/{unitTypeName}")
+  public void doGet(@PathVariable("fileType") FileType fileType,
+                    @PathVariable("firmwareVersion") String firmwareVersion,
+                    @PathVariable("unitTypeName") String unitTypeName,
+                    HttpServletResponse res) throws IOException {
+    var version = firmwareVersion.replaceAll(...);  // ❌ var 关键字 - JDK 10+
+    // ... 固件下载逻辑
+  }
+}
+```
+
+**解决方案**: 在 EmbeddedTR069Server 中实现 FileHandler
+
+```java
+// 新增: FileHandler.java (Netty 版本)
+public class FileHandler {
+    private final AcsCache acsCache;
+    
+    public void handleFileDownload(String fileType, String version, 
+                                   String unitTypeName, HttpServerExchange exchange) {
+        // JDK 8 兼容写法
+        String normalizedVersion = version.replaceAll(
+            DownloadLogicTR069.SPACE_SEPARATOR, " ");
+        String normalizedUnitTypeName = unitTypeName.replaceAll(
+            DownloadLogicTR069.SPACE_SEPARATOR, " ");
+        
+        // 获取固件
+        Unittype unittype = acsCache.getUnitType(normalizedUnitTypeName);
+        File firmware = acsCache.getFile(
+            FileType.valueOf(fileType), unittype, normalizedVersion);
+        byte[] content = acsCache.getFileContents(firmware.getId());
+        
+        // 返回响应
+        exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, 
+            "application/octet-stream");
+        exchange.getResponseSender().send(ByteBuffer.wrap(content));
+    }
+}
+```
+
+**Netty 路由配置**:
+```java
+// 在 NettyHttpServer 中添加路由
+server.createContext(config.getContextPath() + "/file/{fileType}/{version}/{unitTypeName}", 
+    exchange -> fileHandler.handle(exchange));
+```
+
+---
+
+### 2. Finally 块清理逻辑
+
+**问题**: Tr069Controller 的 finally 块有复杂的清理逻辑
+
+**当前逻辑**:
+```java
+finally {
+    if (requestResponseData != null && endOfSession(requestResponseData)) {
+        // 1. 写入排队参数
+        if (requestResponseData.getSessionData().getUnit() != null) {
+            writeQueuedUnitParameters(requestResponseData);
+        }
+        // 2. 记录会话日志
+        SessionLogging.log(requestResponseData);
+        // 3. 清除缓存 (两次!)
+        BaseCache.removeSessionData(requestResponseData.getSessionData().getUnitId());
+        BaseCache.removeSessionData(requestResponseData.getSessionData().getId());
+        // 4. 关闭连接
+        response.setHeader("Connection", "close");
+        // 5. Spring Security 登出 (需要替代)
+        new SecurityContextLogoutHandler().logout(request, null, null);
+    }
+}
+```
+
+**解决方案**: 创建 SessionCleanup 类
+
+```java
+// 新增: SessionCleanup.java
+public class SessionCleanup {
+    
+    public void cleanup(HTTPRequestResponseData reqRes, 
+                       boolean isEndOfSession,
+                       HttpResponseAdapter response) {
+        if (!isEndOfSession) {
+            return;
+        }
+        
+        // 1. 写入排队参数
+        writeQueuedUnitParameters(reqRes);
+        
+        // 2. 记录会话日志
+        SessionLogging.log(reqRes);
+        
+        // 3. 清除缓存
+        String unitId = reqRes.getSessionData().getUnitId();
+        String sessionId = reqRes.getSessionData().getId();
+        if (unitId != null) {
+            BaseCache.removeSessionData(unitId);
+        }
+        BaseCache.removeSessionData(sessionId);
+        
+        // 4. 关闭连接
+        response.setHeader("Connection", "close");
+        
+        // 5. Netty 无需 SecurityContextLogoutHandler
+        // Spring Security 登出逻辑在此不适用
+    }
+    
+    private void writeQueuedUnitParameters(HTTPRequestResponseData reqRes) {
+        try {
+            Unit unit = reqRes.getSessionData().getUnit();
+            if (unit != null) {
+                dbi.getACSUnit().addOrChangeQueuedUnitParameters(unit);
+            }
+        } catch (Throwable t) {
+            log.error("Error writing queued unit parameters", t);
+        }
+    }
+}
+```
+
+---
+
+### 3. endOfSession 判断逻辑
+
+**问题**: 判断会话结束依赖 Properties.isTerminationQuirk()
+
+**当前逻辑**:
+```java
+private boolean endOfSession(HTTPRequestResponseData reqRes) {
+    if (reqRes.getThrowable() != null) {
+        return true;  // 异常时结束
+    }
+    SessionData sessionData = reqRes.getSessionData();
+    HTTPRequestData reqData = reqRes.getRequestData();
+    HTTPResponseData resData = reqRes.getResponseData();
+    
+    if (reqData.getMethod() != null
+            && resData != null
+            && ProvisioningMethod.Empty.name().equals(resData.getMethod())) {
+        // 响应是 Empty 时，检查 terminationQuirk
+        boolean terminationQuirk = properties.isTerminationQuirk(sessionData);
+        return !terminationQuirk || 
+               ProvisioningMethod.Empty.name().equals(reqData.getMethod());
+    }
+    return false;
+}
+```
+
+**解决方案**: 移植到 TR069Handler
+
+```java
+// 在 TR069Handler 中
+private boolean isEndOfSession(HTTPRequestResponseData reqRes) {
+    // 异常时结束
+    if (reqRes.getThrowable() != null) {
+        return true;
+    }
+    
+    HTTPRequestData reqData = reqRes.getRequestData();
+    HTTPResponseData resData = reqRes.getResponseData();
+    
+    // 响应是 Empty 时判断
+    if (reqData.getMethod() != null 
+            && resData != null 
+            && "Empty".equals(resData.getMethod())) {
+        
+        // 检查 terminationQuirk
+        boolean terminationQuirk = properties.isTerminationQuirk(
+            reqRes.getSessionData());
+        
+        if (!terminationQuirk) {
+            return true;  // 无 quirk，Empty 响应即结束
+        }
+        // 有 quirk 时，请求和响应都是 Empty 才结束
+        return "Empty".equals(reqData.getMethod());
+    }
+    return false;
+}
+```
+
+---
+
+### 4. Properties 传递方案
+
+**问题**: `ProvisioningStrategy.getStrategy(Properties properties, DBI dbi)` 需要 Properties
+
+**当前 Properties 依赖**:
+```java
+@Data
+@Component
+public class Properties {
+    private Environment environment;  // ❌ Spring 依赖
+    
+    public boolean isTerminationQuirk(SessionData sessionData) {
+        return isQuirk("termination", sessionData.getUnittypeName(), 
+                       sessionData.getVersion());
+    }
+    
+    private boolean isQuirk(String quirkName, String unittypeName, String version) {
+        for (String quirk : getQuirks(unittypeName, version)) {
+            if (quirk.equals(quirkName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private String[] getQuirks(String unittypeName, String version) {
+        String quirks = environment.getProperty("quirks." + unittypeName + "." + version);
+        // ...
+    }
+}
+```
+
+**解决方案**: 创建 TR069Properties 替代
+
+```java
+// 新增: TR069Properties.java (实现 Properties 接口或继承)
+public class TR069Properties {
+    private String authMethod;
+    private String publicUrl;
+    private boolean discoveryMode;
+    private int concurrentDownloadLimit;
+    
+    // Quirks 配置: Map<unittypeName, Map<version, quirks[]>>
+    private Map<String, Map<String, String[]>> quirksMap = new HashMap<>();
+    
+    // 从 TR069ServerConfig 创建
+    public static TR069Properties fromConfig(TR069ServerConfig config) {
+        TR069Properties props = new TR069Properties();
+        props.setAuthMethod(config.getAuthMethod().name());
+        props.setPublicUrl(config.getPublicUrl());
+        props.setDiscoveryMode(config.isDiscoveryMode());
+        props.setConcurrentDownloadLimit(config.getConcurrentDownloadLimit());
+        props.setQuirksMap(config.getQuirksMap());
+        return props;
+    }
+    
+    // 实现 quirk 检查 (不依赖 Spring Environment)
+    public boolean isTerminationQuirk(SessionData sessionData) {
+        return isQuirk("termination", sessionData.getUnittypeName(), 
+                       sessionData.getVersion());
+    }
+    
+    public boolean isParameterkeyQuirk(SessionData sessionData) {
+        return isQuirk("parameterkey", sessionData.getUnittypeName(), 
+                       sessionData.getVersion());
+    }
+    
+    private boolean isQuirk(String quirkName, String unittypeName, String version) {
+        if (unittypeName == null) {
+            return false;
+        }
+        String[] quirks = getQuirks(unittypeName, version);
+        for (String quirk : quirks) {
+            if (quirk.equals(quirkName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private String[] getQuirks(String unittypeName, String version) {
+        Map<String, String[]> versionMap = quirksMap.get(unittypeName);
+        if (versionMap == null) {
+            return new String[0];
+        }
+        if (version != null && versionMap.containsKey(version)) {
+            return versionMap.get(version);
+        }
+        // 回退到默认版本
+        return versionMap.getOrDefault("default", new String[0]);
+    }
+}
+```
+
+**TR069ServerConfig 添加 Quirks 配置**:
+```java
+public class TR069ServerConfig {
+    // ... 其他配置
+    
+    // Quirks 配置: 格式为 "unittypeName:version:quirk1,quirk2"
+    // 例如: "HG622:1.0:termination,prettyprint"
+    private Map<String, Map<String, String[]>> quirksMap = new HashMap<>();
+    
+    public TR069ServerConfig addQuirk(String unittypeName, String version, 
+                                      String... quirks) {
+        quirksMap.computeIfAbsent(unittypeName, k -> new HashMap<>())
+                 .put(version, quirks);
+        return this;
+    }
+}
+
+// 使用示例
+TR069Server server = TR069Server.builder()
+    .dataSource(ds)
+    .addQuirk("HG622", "1.0", "termination", "prettyprint")
+    .addQuirk("HG622", "default", "parameterkey")
+    .build();
+```
+
+---
+
+### 5. 更新任务列表
+
+**新增任务**:
+- Task 19: 实现 FileHandler (固件下载)
+- Task 20: 实现 SessionCleanup (会话清理)
+- Task 21: 实现 TR069Properties (替代 Spring Properties)
 public class TR069ServerConfig {
     // 网络配置
     private int port = 8080;                              // 监听端口
@@ -589,7 +910,7 @@ Evidence saved to `.sisyphus/evidence/task-{N}-{scenario-slug}.{ext}`.
 Wave 1 (Foundation - 接口定义 + API设计):
 ├── Task 1: 创建 Maven 模块结构 + pom.xml (JAR打包配置) [quick]
 ├── Task 2: 定义 HttpRequestAdapter 接口 [quick]
-├── Task 3: 定义 TR069ServerConfig 配置类 [quick]
+├── Task 3: 定义 TR069ServerConfig 配置类 + Quirks 支持 [quick]
 ├── Task 4: 定义 TR069ServerListener 事件接口 + SessionSummary [quick]
 ├── Task 5: 定义 AuthenticationParser 接口 [quick]
 ├── Task 6: 定义 TaskScheduler 接口 [quick]
@@ -601,14 +922,17 @@ Wave 2 (Core Implementation - 核心实现):
 ├── Task 10: 实现 DigestAuthParser (depends: 5) [unspecified-high]
 ├── Task 11: 实现 ExecutorTaskScheduler (depends: 6) [quick]
 ├── Task 12: 实现 NettySessionManager (depends: 7) [unspecified-high]
-└── Task 13: 适配 HTTPRequestResponseData (depends: 2) [deep]
+├── Task 13: 适配 HTTPRequestResponseData (depends: 2) [deep]
+└── Task 21: 实现 TR069Properties (depends: 3) [unspecified-high]
 
 Wave 3 (Integration - 集成):
-├── Task 14: 实现 NettyHttpServer (depends: 8, 11) [deep]
-├── Task 15: 实现 TR069Handler (depends: 8, 9, 10, 12, 13) [deep]
+├── Task 14: 实现 NettyHttpServer + FileHandler 路由 (depends: 8, 11) [deep]
+├── Task 15: 实现 TR069Handler + SessionCleanup (depends: 8, 9, 10, 12, 13, 21) [deep]
 ├── Task 16: 实现 TR069Server 主类 + Builder (depends: 3, 4, 14, 15) [unspecified-high]
 ├── Task 17: 集成后台调度任务 + 事件回调 (depends: 11, 16) [quick]
-└── Task 18: 创建测试程序模块 embedded-tr069-server-test (depends: 16) [unspecified-high]
+├── Task 18: 创建测试程序模块 embedded-tr069-server-test (depends: 16) [unspecified-high]
+├── Task 19: 实现 FileHandler 固件下载 (depends: 14) [unspecified-high]
+└── Task 20: 实现 SessionCleanup 会话清理 (depends: 15) [quick]
 
 Wave FINAL (Verification - 验证):
 ├── Task F1: Plan compliance audit (oracle)
@@ -618,7 +942,7 @@ Wave FINAL (Verification - 验证):
 -> Present results -> Get explicit user okay
 
 Critical Path: Task 2 → Task 8 → Task 13 → Task 15 → Task 16
-Parallel Speedup: ~60% faster than sequential
+Parallel Speedup: ~65% faster than sequential
 Max Concurrent: 7 (Wave 1)
 ```
 
@@ -626,6 +950,28 @@ Max Concurrent: 7 (Wave 1)
 
 | Task | Depends On | Blocks | Wave |
 |------|-----------|--------|------|
+| 1 | - | 8, 14 | 1 |
+| 2 | - | 8, 13, 15 | 1 |
+| 3 | - | 16, 21 | 1 |
+| 4 | - | 16 | 1 |
+| 5 | - | 9, 10 | 1 |
+| 6 | - | 11 | 1 |
+| 7 | - | 12 | 1 |
+| 8 | 2 | 14, 15 | 2 |
+| 9 | 5 | 15 | 2 |
+| 10 | 5 | 15 | 2 |
+| 11 | 6 | 14, 17 | 2 |
+| 12 | 7 | 15 | 2 |
+| 13 | 2 | 15 | 2 |
+| 21 | 3 | 15 | 2 |
+| 14 | 8, 11 | 16, 19 | 3 |
+| 15 | 8, 9, 10, 12, 13, 21 | 16, 20 | 3 |
+| 16 | 3, 4, 14, 15 | 17, 18 | 3 |
+| 17 | 11, 16 | F1-F4 | 3 |
+| 18 | 16 | F1-F4 | 3 |
+| 19 | 14 | F1-F4 | 3 |
+| 20 | 15 | F1-F4 | 3 |
+| F1-F4 | 17-20 | - | FINAL |
 | 1 | - | 2-7, 8-17 | 1 |
 | 2 | 1 | 8, 13 | 1 |
 | 3 | 1 | 16 | 1 |
@@ -816,6 +1162,39 @@ Max Concurrent: 7 (Wave 1)
     - 运行测试程序，能启动服务器
     - 能接收 CPE 连接
 
+- [ ] **Task 19: 实现 FileHandler (固件下载)**
+  - **What to do**:
+    - 创建 `FileHandler.java` 处理 `/file/{fileType}/{version}/{unitTypeName}` 端点
+    - 复用 `AcsCache` 获取固件内容
+    - 实现 JDK 8 兼容写法（不使用 `var`）
+    - 在 NettyHttpServer 中添加路由
+  - **参考**: `tr069/src/main/java/com/github/freeacs/controllers/FileController.java`
+  - **QA Scenario**: 
+    - GET `/tr069/file/FIRMWARE/1.0/HG622` 返回固件内容
+    - 不存在的固件返回 404
+
+- [ ] **Task 20: 实现 SessionCleanup (会话清理)**
+  - **What to do**:
+    - 创建 `SessionCleanup.java` 封装 finally 块清理逻辑
+    - 实现 `writeQueuedUnitParameters()` 写入排队参数
+    - 实现 `isEndOfSession()` 判断会话结束
+    - 集成到 TR069Handler 的 finally 块
+  - **参考**: `Tr069Controller.java:115-128` (finally 块)
+  - **QA Scenario**: 
+    - 会话结束时，排队参数写入数据库
+    - BaseCache 中 SessionData 被清除
+
+- [ ] **Task 21: 实现 TR069Properties (替代 Spring Properties)**
+  - **What to do**:
+    - 创建 `TR069Properties.java` 不依赖 Spring Environment
+    - 实现 `isTerminationQuirk()`、`isParameterkeyQuirk()` 等
+    - 支持通过 TR069ServerConfig 配置 quirks
+    - 传递给 `ProvisioningStrategy.getStrategy()`
+  - **参考**: `tr069/src/main/java/com/github/freeacs/tr069/Properties.java`
+  - **QA Scenario**: 
+    - 配置 quirk 后，`isTerminationQuirk()` 返回正确结果
+    - 未配置 quirk 返回 false
+
 ### 模块结构
 
 ```
@@ -925,9 +1304,10 @@ public class TR069ServerTestApp {
     
     private static HikariDataSource createDataSource() {
         HikariDataSource ds = new HikariDataSource();
-        ds.setJdbcUrl("jdbc:mysql://localhost:3306/acs");
-        ds.setUsername("acs");
-        ds.setPassword("acs");
+        ds.setDriverClassName("com.mysql.cj.jdbc.Driver");
+        ds.setJdbcUrl("jdbc:mysql://172.100.4.179:3306/acs?autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&verifyServerCertificate=false&useSSL=false&requireSSL=false");
+        ds.setUsername("root");
+        ds.setPassword("Ticom-123");
         ds.setMaximumPoolSize(10);
         ds.setMinimumIdle(2);
         return ds;
@@ -980,11 +1360,11 @@ public class TestListener implements TR069ServerListener {
 
 **application.properties**:
 ```properties
-# Database Configuration
-db.url=jdbc:mysql://localhost:3306/acs
-db.username=acs
-db.password=acs
-db.pool.size=10
+# Database Configuration (参考 tr069 模块)
+main.datasource.jdbcUrl=jdbc:mysql://172.100.4.179:3306/acs?autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&verifyServerCertificate=false&useSSL=false&requireSSL=false
+main.datasource.driverClassName=com.mysql.cj.jdbc.Driver
+main.datasource.username=root
+main.datasource.password=Ticom-123
 
 # TR069 Server Configuration
 tr069.port=8080
